@@ -101,12 +101,8 @@ export function initialize() {
     const controller = args[0] as unknown as Record<string, unknown>;
     const r = setupController.call(this, ...args);
     const fullRouteName = this.fullRouteName;
-    const state = StateCache[fullRouteName] as { router?: Record<string, unknown>; controller?: Record<string, unknown> } || {};
+    const state = StateCache[fullRouteName] as { controller?: Record<string, unknown> } || {};
     const skip = ['_qpDelegate', 'target', 'queryParams'];
-    const routerState = getState(state.router as HotComponent, skip);
-    for (const k in routerState) {
-      (this as unknown as Record<string, unknown>)[k] = routerState[k];
-    }
     // Only re-apply controller state onto a *new* instance (an HMR swap). On
     // ordinary navigation it is the same singleton, and re-applying a
     // non-`@tracked` query param onto itself trips Ember's mandatory setter.
@@ -116,10 +112,7 @@ export function initialize() {
         (controller as Record<string, unknown>)[k] = controllerState[k];
       }
     }
-    StateCache[fullRouteName] = {
-      route: this,
-      controller,
-    };
+    StateCache[fullRouteName] = { controller };
     return r;
   };
 }
