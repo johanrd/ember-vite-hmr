@@ -46,14 +46,21 @@ describe('test-app: non-tracked query param survives re-navigation', () => {
     await page.click('.nav-project');
     await page.waitForSelector('.project-page');
 
-    // 2nd visit: with the bug, the patch re-applies the cached `groupBy` onto
-    // the same controller and the mandatory setter throws.
+    // 2nd visit: with the fix the route re-renders cleanly; with the bug the
+    // patch re-applies the cached `groupBy` and the mandatory setter throws.
+    // The assertion is captured asynchronously, so poll for it (exiting early
+    // when it appears) rather than sleeping a fixed amount — robust under slow
+    // CI, where a fixed wait could be too short.
     await page.click('.nav-equipment');
-    await new Promise((r) => globalThis.setTimeout(r, 750));
 
-    const assertion = errors.find((e) =>
-      /attempted to update.*groupBy|mark the property as `?@tracked/i.test(e),
-    );
+    const isAssertion = (e: string) =>
+      /attempted to update.*groupBy|mark the property as `?@tracked/i.test(e);
+    const deadline = Date.now() + 5_000;
+    while (Date.now() < deadline && !errors.some(isAssertion)) {
+      await new Promise((r) => globalThis.setTimeout(r, 50));
+    }
+
+    const assertion = errors.find(isAssertion);
     expect(
       assertion,
       `mandatory-setter assertion fired on re-navigation:\n${errors.join('\n')}`,
